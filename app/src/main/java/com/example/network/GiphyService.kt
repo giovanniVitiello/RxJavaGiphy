@@ -55,19 +55,26 @@ class GiphyService {
 
         val observable = service.trending(API_KEY)
         disposable = observable
-            .map { it.data
-                .map { it.toGif() }
-                .take(15) // prende i primi 15 elementi
-                .subList(5, 10) // sottolista da 5 a 10
+            .map {
+                it.data
+                    .map { it.toGif() }
+                    .take(15) // prende i primi 15 elementi
+                    .subList(5, 10) // sottolista da 5 a 10
             }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeOn(Schedulers.io())
-            .subscribe({
-                receiver.receive(GifResult.Success(it))
-            }, {
-                receiver.receive(GifResult.Error(error = it))
-            })
+            .subscribe(
+                { result -> onSuccess(result, receiver) }, //oppure direttamente: receveir.receive(GifResult.Success(it))
+                { error -> onError(error, receiver) })     //oppure direttamente: receveir.receive(GifResult.Error(it))
         compositeDisposable.addAll(disposable)
+    }
+
+    private fun onSuccess(result: List<Gif>, receiver: GifResultReceiver) {
+        receiver.receive(GifResult.Success(result))
+    }
+
+    private fun onError(throwable: Throwable, receiver: GifResultReceiver) {
+        receiver.receive(GifResult.Error(throwable))
     }
 
     // Provate 2 chiamate di rete per utilizzare i metodi di Observable di gestire 2 chiamate differenti
@@ -96,8 +103,9 @@ class GiphyService {
         val mergeObservable = Observable.merge(observable, observable2)
 
         disposable = mergeObservable
-            .map { it.data
-                .map { it.toGif() }
+            .map {
+                it.data
+                    .map { it.toGif() }
             }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeOn(Schedulers.io())
