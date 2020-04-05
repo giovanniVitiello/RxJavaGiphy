@@ -53,7 +53,7 @@ class GiphyService {
 
     fun loadDataTrending(receiver: GifResultReceiver) {
 
-        val observable = service.trending(API_KEY)
+        val observable = service.trending(API_KEY) //riceviamo un observable
         disposable = observable
             .map {
                 it.data
@@ -61,13 +61,19 @@ class GiphyService {
                     .take(15) // prende i primi 15 elementi
                     .subList(5, 10) // sottolista da 5 a 10
             }
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribeOn(Schedulers.io())
-            .subscribe(
+            .subscribeOn(Schedulers.io()) //serve per dire che vogliamo che i dati passino su un altro thread rispetto al main di Android(ui)
+                                          // per non rallentare il processo (Multithreading).
+            .observeOn(AndroidSchedulers.mainThread()) //serve per dire che vogliamo trasferire i dati dal thread io al main Thread
+            .subscribe(                                     //*
                 { result -> onSuccess(result, receiver) }, //oppure direttamente: receveir.receive(GifResult.Success(it))
                 { error -> onError(error, receiver) })     //oppure direttamente: receveir.receive(GifResult.Error(it))
         compositeDisposable.addAll(disposable)
     }
+
+    // * quando facciamo observable.subsribe, ci iscriviamo all'observable ed otteniamo un oggetto di tipo observer(o disposable
+    // cioè che con rxjava2 disposable che una volta pieno di oggetti da osservare li contiene e li manda a poco a poco, ed infine
+    // con la funzione dispose nell'onDestroy vengono eliminati per evitare di mantenere troppi dati in memoria -Memory leak-
+    // quindi praticamente ci de-iscriviamo all'observable)
 
     private fun onSuccess(result: List<Gif>, receiver: GifResultReceiver) {
         receiver.receive(GifResult.Success(result))
